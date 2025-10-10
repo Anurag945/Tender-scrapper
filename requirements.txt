@@ -1,0 +1,5 @@
+This file lists all the Python libraries needed for the project.
+selenium
+webdriver-manager
+requests
+beautifulsoup4
