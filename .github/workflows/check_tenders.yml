@@ -1,0 +1,52 @@
+# This file is the instruction manual for the GitHub Actions robot.
+# It should be placed in a folder named ".github/workflows/" in your repository.
+name: Check for New Tenders
+
+on:
+  schedule:
+    # This CRON schedule runs the job every 4 hours.
+    - cron: '0 */4 * * *'
+  # This line allows you to run the workflow manually from the Actions tab.
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Google Chrome for Selenium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
+      - name: Install Python dependencies from requirements.txt
+        run: pip install -r requirements.txt
+
+      - name: Run LNMIIT Scraper
+        env:
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+        run: python scraper.py
+
+      - name: Run GeM Portal Scraper
+        env:
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+        run: python gem_scraper.py
+      
+      - name: Commit and push updated processed tender files
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add processed_*.txt
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update processed tenders list"; git push)
